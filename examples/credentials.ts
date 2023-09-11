@@ -19,3 +19,12 @@ new Elysia()
     })
   )
   .listen(3000)
+
+// use an array of credentials
+new Elysia()
+  .use(
+    basicAuth({
+      credentials: [{ username: 'admin', password: 'admin' }],
+    })
+  )
+  .listen(3000)
