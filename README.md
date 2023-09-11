@@ -87,11 +87,11 @@ Response status for unauthorized requests
 
 ### scope
 
-`string | (ctx: PreContext) => boolean`
+`string | string[] | (ctx: PreContext) => boolean`
 
 Default: `/`
 
-A string that will be compared with the current request path via `startsWith`.
+A string or list of strings that will be compared with the current request path via `startsWith`.
 
 Alternatively, a function can be provided that returns `true` if the context (and thereby request) is in the scope of the current basic auth protection space.
 
