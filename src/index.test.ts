@@ -187,6 +187,17 @@ describe('basicAuth scope', () => {
 
     expect((await app.handle(req('/private/1234'))).status).toEqual(401)
   })
+
+  it('limits scope via a collection of path prefixes', async () => {
+    const app = new Elysia().use(
+      basicAuth({ credentials, scope: ['/private', '/admin'] })
+    )
+
+    const privateResponse = await app.handle(req('/private'))
+    const adminResponse = await app.handle(req('/admin'))
+    expect(privateResponse.status).toEqual(401)
+    expect(adminResponse.status).toEqual(401)
+  })
 })
 
 describe('basicAuth multi-realm', () => {

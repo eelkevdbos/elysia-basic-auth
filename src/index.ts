@@ -54,7 +54,7 @@ export type BasicAuthOptions = {
   realm: string
   unauthorizedMessage: string
   unauthorizedStatus: number
-  scope: string | ((ctx: PreContext) => boolean)
+  scope: string | string[] | ((ctx: PreContext) => boolean)
   skipCorsPreflight: boolean
 }
 
@@ -157,6 +157,11 @@ function newScopePredicate(scope: BasicAuthOptions['scope']) {
       return (ctx: PreContext) => getPath(ctx.request).startsWith(scope)
     case 'function':
       return scope
+    case 'object':
+      if (Array.isArray(scope)) {
+        return (ctx: PreContext) =>
+          scope.some(s => getPath(ctx.request).startsWith(s))
+      }
     default:
       throw new Error(`Unhandled scope type: ${typeof scope}`)
   }
