@@ -4,6 +4,7 @@ Elysia Basic Auth ![example workflow](https://github.com/eelkevdbos/elysia-basic
 Basic auth for [Elysia.js](https://elysiajs.com/).
 
 - Uses the `request` event to handle authentication, decoupling authentication from route existence, limiting url [fuzzing](https://owasp.org/www-project-web-security-testing-guide/latest/6-Appendix/C-Fuzzing) exposure.
+- Compares credentials timing-attack safely via `crypto.timingSafeEqual`.
 - Exposes the authenticated realm via `store.basicAuthRealm`.
 - Optionally, bypasses CORS preflight requests, blocks them by default (in scope).
 - Loads credentials from:
@@ -46,7 +47,7 @@ Configuration
 
 ### credentials
 
-`{file: string} | {env: string} | { username: string, password: string }[]`
+`{ file: string } | { env: string } | { username: string, password: string }[]`
 
 A list of credentials valid for authentication, a file with credential pairs separated by newlines, or an environment variable with credential pairs separated by semicolons.
 
