@@ -1,25 +1,63 @@
 import { timingSafeEqual } from 'crypto'
 import Elysia, { PreContext } from 'elysia'
+import * as fs from 'fs'
 
 export type BasicAuthCredentials = {
   username: string
   password: string
 }
 
-type RequiredBasicAuthOptions = {
-  credentials: BasicAuthCredentials[]
+type CredentialsMap = Record<
+  BasicAuthCredentials['username'],
+  BasicAuthCredentials
+>
+
+function newCredentialsMap(
+  option: BasicAuthOptions['credentials']
+): CredentialsMap {
+  if (Array.isArray(option)) {
+    return option.reduce((mapping, credentials) => {
+      return { ...mapping, [credentials.username]: credentials }
+    }, {})
+  }
+
+  if ('file' in option) {
+    return fs
+      .readFileSync(option.file, 'utf-8')
+      .split('\n')
+      .reduce((m, l) => {
+        const [username, password] = l.split(':')
+        if (!username || !password) return m
+        return { ...m, [username]: { username, password } }
+      }, {})
+  }
+
+  if ('env' in option) {
+    return (process.env[option.env] || '').split(';').reduce((m, cStr) => {
+      const [username, password] = cStr.split(':')
+      if (!username || !password) return m
+      return { ...m, [username]: { username, password } }
+    }, {})
+  }
+
+  throw new Error('Invalid credentials option')
 }
 
-type ExtraBasicAuthOptions = {
+export type BasicAuthCredentialOptions =
+  | { env: string }
+  | { file: string }
+  | BasicAuthCredentials[]
+
+export type BasicAuthOptions = {
+  credentials: BasicAuthCredentialOptions
   header: string
   realm: string
   unauthorizedMessage: string
   unauthorizedStatus: number
   scope: string | ((ctx: PreContext) => boolean)
+  skipCorsPreflight: boolean
 }
 
-export type BasicAuthOptions = RequiredBasicAuthOptions &
-  Partial<ExtraBasicAuthOptions>
 class BasicAuthError extends Error {
   constructor(
     readonly message: string,
@@ -30,12 +68,14 @@ class BasicAuthError extends Error {
   }
 }
 
-const defaultOptions: ExtraBasicAuthOptions = {
+const defaultOptions: BasicAuthOptions = {
+  credentials: { env: 'BASIC_AUTH_CREDENTIALS' },
   header: 'Authorization',
   realm: 'Secure Area',
   unauthorizedMessage: 'Unauthorized',
   unauthorizedStatus: 401,
   scope: '/',
+  skipCorsPreflight: false,
 }
 
 /**
@@ -125,17 +165,16 @@ function newScopePredicate(scope: BasicAuthOptions['scope']) {
 /**
  * Basic auth middleware
  */
-export function basicAuth(userOptions: BasicAuthOptions) {
-  const options: RequiredBasicAuthOptions & ExtraBasicAuthOptions = {
+export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
+  const options: BasicAuthOptions = {
     ...defaultOptions,
     ...userOptions,
   }
 
-  const credentialsMap = options.credentials.reduce((m, c) => {
-    return { ...m, [c.username]: c }
-  }, {})
-
+  const credentialsMap = newCredentialsMap(options.credentials)
   const inScope = newScopePredicate(options.scope)
+  const skipRequest = (request: Request) =>
+    options.skipCorsPreflight && isCORSPreflightRequest(request)
 
   return (app: Elysia) =>
     app
@@ -150,7 +189,7 @@ export function basicAuth(userOptions: BasicAuthOptions) {
         }
       })
       .onRequest(ctx => {
-        if (inScope(ctx) && !isCORSPreflightRequest(ctx.request)) {
+        if (inScope(ctx) && !skipRequest(ctx.request)) {
           const authHeader = ctx.request.headers.get(options.header)
           if (!authHeader || !authHeader.toLowerCase().startsWith('basic ')) {
             throw new BasicAuthError('Invalid header', options.realm)

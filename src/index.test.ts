@@ -52,16 +52,64 @@ describe('basicAuth', () => {
     const bearerRequest = req('/private', bearerInit)
     expect((await app.handle(bearerRequest)).status).toEqual(401)
   })
+})
 
-  it('does not protect CORS preflight requests', async () => {
-    const preflightRequest = req('/private', {
-      method: 'OPTIONS',
-      headers: {
-        Origin: 'foreignhost',
-        'Cross-Origin-Request-Method': 'GET',
-      },
-    })
+describe('basicAuth skipCorsPreflight', () => {
+  const preflightRequest = req('/private', {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'foreignhost',
+      'Cross-Origin-Request-Method': 'GET',
+    },
+  })
+  it('no bypass by default', async () => {
+    const app = new Elysia()
+      .use(basicAuth())
+      .options('/private', () => 'private')
+    expect((await app.handle(preflightRequest)).status).toEqual(401)
+  })
+  it('bypasses cors preflight if configured', async () => {
+    const app = new Elysia()
+      .use(basicAuth({ skipCorsPreflight: true }))
+      .options('/private', () => 'skipped')
     expect((await app.handle(preflightRequest)).status).toEqual(200)
+  })
+})
+
+describe('basicAuth credentials file loader', () => {
+  it('loads', async () => {
+    const app = new Elysia()
+      .use(basicAuth({ credentials: { file: 'fixtures/credentials' } }))
+      .get('/private', () => 'private')
+
+    expect((await app.handle(req('/private', userInit))).status).toEqual(200)
+  })
+
+  it('throws if file missing', async () => {
+    const initialize = () => {
+      new Elysia().use(basicAuth({ credentials: { file: 'missing' } }))
+    }
+    expect(initialize).toThrow(Error)
+  })
+})
+
+describe('basicAuth credentials environment loader', () => {
+  it('loads from a default environment', async () => {
+    process.env['BASIC_AUTH_CREDENTIALS'] = 'admin:admin'
+
+    const app = new Elysia().use(basicAuth()).get('/private', () => 'private')
+
+    expect((await app.handle(req('/private', userInit))).status).toEqual(200)
+  })
+
+  it('loads from a custom environment', async () => {
+    process.env['CUSTOM_AUTH_CREDENTIALS'] = 'admin:admin'
+
+    const app = new Elysia()
+      .use(basicAuth({ credentials: { env: 'CUSTOM_AUTH_CREDENTIALS' } }))
+      .get('/private', () => 'private')
+
+    expect((await app.handle(req('/private', userInit))).status).toEqual(200)
   })
 })
 
