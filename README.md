@@ -102,3 +102,11 @@ Alternatively, a function can be provided that returns `true` if the context (an
 Default: `false`
 
 A boolean that determines whether CORS preflight requests should be skipped.
+
+### enabled
+
+`boolean`
+
+Default: `true`
+
+A boolean that determines whether basic auth should be enabled. If set to `false`, will disable the `onRequest` handler.

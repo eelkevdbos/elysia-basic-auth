@@ -228,3 +228,13 @@ describe('basicAuth multi-realm', () => {
     expect(await realmBResponse.text()).toEqual('Realm B')
   })
 })
+
+describe('basicAuth enabled', () => {
+  it("doesn't require auth if disabled", async () => {
+    const app = new Elysia()
+      .use(basicAuth({ enabled: false }))
+      .get('/private', () => 'private')
+
+    expect((await app.handle(req('/private'))).status).toEqual(200)
+  })
+})

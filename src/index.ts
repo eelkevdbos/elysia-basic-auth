@@ -12,6 +12,43 @@ type CredentialsMap = Record<
   BasicAuthCredentials
 >
 
+export type BasicAuthCredentialOptions =
+  | { env: string }
+  | { file: string }
+  | BasicAuthCredentials[]
+
+export type BasicAuthOptions = {
+  enabled: Boolean
+  credentials: BasicAuthCredentialOptions
+  header: string
+  realm: string
+  unauthorizedMessage: string
+  unauthorizedStatus: number
+  scope: string | string[] | ((ctx: PreContext) => boolean)
+  skipCorsPreflight: boolean
+}
+
+class BasicAuthError extends Error {
+  constructor(
+    readonly message: string,
+    readonly realm: string
+  ) {
+    super(message)
+    this.realm = realm
+  }
+}
+
+const defaultOptions: BasicAuthOptions = {
+  enabled: true,
+  credentials: { env: 'BASIC_AUTH_CREDENTIALS' },
+  header: 'Authorization',
+  realm: 'Secure Area',
+  unauthorizedMessage: 'Unauthorized',
+  unauthorizedStatus: 401,
+  scope: '/',
+  skipCorsPreflight: false,
+}
+
 function newCredentialsMap(
   option: BasicAuthOptions['credentials']
 ): CredentialsMap {
@@ -41,41 +78,6 @@ function newCredentialsMap(
   }
 
   throw new Error('Invalid credentials option')
-}
-
-export type BasicAuthCredentialOptions =
-  | { env: string }
-  | { file: string }
-  | BasicAuthCredentials[]
-
-export type BasicAuthOptions = {
-  credentials: BasicAuthCredentialOptions
-  header: string
-  realm: string
-  unauthorizedMessage: string
-  unauthorizedStatus: number
-  scope: string | string[] | ((ctx: PreContext) => boolean)
-  skipCorsPreflight: boolean
-}
-
-class BasicAuthError extends Error {
-  constructor(
-    readonly message: string,
-    readonly realm: string
-  ) {
-    super(message)
-    this.realm = realm
-  }
-}
-
-const defaultOptions: BasicAuthOptions = {
-  credentials: { env: 'BASIC_AUTH_CREDENTIALS' },
-  header: 'Authorization',
-  realm: 'Secure Area',
-  unauthorizedMessage: 'Unauthorized',
-  unauthorizedStatus: 401,
-  scope: '/',
-  skipCorsPreflight: false,
 }
 
 /**
@@ -194,7 +196,7 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
         }
       })
       .onRequest(ctx => {
-        if (inScope(ctx) && !skipRequest(ctx.request)) {
+        if (options.enabled && inScope(ctx) && !skipRequest(ctx.request)) {
           const authHeader = ctx.request.headers.get(options.header)
           if (!authHeader || !authHeader.toLowerCase().startsWith('basic ')) {
             throw new BasicAuthError('Invalid header', options.realm)
