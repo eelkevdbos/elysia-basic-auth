@@ -20,6 +20,8 @@ describe('basicAuth', () => {
       })
     )
     .get('/private', () => 'private')
+    .get('/realm', ({ store }) => store.basicAuthRealm)
+    .get('/user', ({ store }) => store.basicAuthUser)
     .options('/private', () => 'public for preflight requests')
 
   it('sets WWW-Authenticate header on unauthorized requests', async () => {
@@ -51,6 +53,16 @@ describe('basicAuth', () => {
   it('rejects non-basic authorization headers', async () => {
     const bearerRequest = req('/private', bearerInit)
     expect((await app.handle(bearerRequest)).status).toEqual(401)
+  })
+
+  it('stores authenticated realm', async () => {
+    const realmResponse = await app.handle(req('/realm', userInit))
+    expect(await realmResponse.text()).toEqual('Secure Area')
+  })
+
+  it('stores authenticated realm', async () => {
+    const userResponse = await app.handle(req('/user', userInit))
+    expect(await userResponse.text()).toEqual('admin')
   })
 })
 

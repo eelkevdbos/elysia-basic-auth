@@ -186,6 +186,7 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
   return (app: Elysia) =>
     app
       .state('basicAuthRealm', null as string | null)
+      .state('basicAuthUser', null as string | null)
       .addError({ BASIC_AUTH_ERROR: BasicAuthError })
       .onError(({ code, error }) => {
         if (code === 'BASIC_AUTH_ERROR' && error.realm === options.realm) {
@@ -208,6 +209,7 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
           }
 
           ctx.store.basicAuthRealm = options.realm
+          ctx.store.basicAuthUser = credentials.username
         }
       })
 }
