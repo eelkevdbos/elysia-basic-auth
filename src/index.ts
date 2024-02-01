@@ -29,6 +29,8 @@ export type BasicAuthOptions = {
 }
 
 class BasicAuthError extends Error {
+  public code = 'BASIC_AUTH_ERROR'
+
   constructor(
     readonly message: string,
     readonly realm: string
@@ -187,7 +189,7 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
     app
       .state('basicAuthRealm', null as string | null)
       .state('basicAuthUser', null as string | null)
-      .addError({ BASIC_AUTH_ERROR: BasicAuthError })
+      .error({ BASIC_AUTH_ERROR: BasicAuthError })
       .onError(({ code, error }) => {
         if (code === 'BASIC_AUTH_ERROR' && error.realm === options.realm) {
           return new Response(options.unauthorizedMessage, {
