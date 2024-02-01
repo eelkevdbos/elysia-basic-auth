@@ -185,33 +185,35 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
   const skipRequest = (request: Request) =>
     options.skipCorsPreflight && isCORSPreflightRequest(request)
 
-  return (app: Elysia) =>
-    app
-      .state('basicAuthRealm', null as string | null)
-      .state('basicAuthUser', null as string | null)
-      .error({ BASIC_AUTH_ERROR: BasicAuthError })
-      .onError(({ code, error }) => {
-        if (code === 'BASIC_AUTH_ERROR' && error.realm === options.realm) {
-          return new Response(options.unauthorizedMessage, {
-            status: options.unauthorizedStatus,
-            headers: { 'WWW-Authenticate': `Basic realm="${options.realm}"` },
-          })
+  return new Elysia({
+    name: 'elysia-basic-auth',
+    seed: options,
+  })
+    .state('basicAuthRealm', null as string | null)
+    .state('basicAuthUser', null as string | null)
+    .error({ BASIC_AUTH_ERROR: BasicAuthError })
+    .onError(({ code, error }) => {
+      if (code === 'BASIC_AUTH_ERROR' && error.realm === options.realm) {
+        return new Response(options.unauthorizedMessage, {
+          status: options.unauthorizedStatus,
+          headers: { 'WWW-Authenticate': `Basic realm="${options.realm}"` },
+        })
+      }
+    })
+    .onRequest(ctx => {
+      if (options.enabled && inScope(ctx) && !skipRequest(ctx.request)) {
+        const authHeader = ctx.request.headers.get(options.header)
+        if (!authHeader || !authHeader.toLowerCase().startsWith('basic ')) {
+          throw new BasicAuthError('Invalid header', options.realm)
         }
-      })
-      .onRequest(ctx => {
-        if (options.enabled && inScope(ctx) && !skipRequest(ctx.request)) {
-          const authHeader = ctx.request.headers.get(options.header)
-          if (!authHeader || !authHeader.toLowerCase().startsWith('basic ')) {
-            throw new BasicAuthError('Invalid header', options.realm)
-          }
 
-          const credentials = getCredentials(authHeader)
-          if (!checkCredentials(credentials, credentialsMap)) {
-            throw new BasicAuthError('Invalid credentials', options.realm)
-          }
-
-          ctx.store.basicAuthRealm = options.realm
-          ctx.store.basicAuthUser = credentials.username
+        const credentials = getCredentials(authHeader)
+        if (!checkCredentials(credentials, credentialsMap)) {
+          throw new BasicAuthError('Invalid credentials', options.realm)
         }
-      })
+
+        ctx.store.basicAuthRealm = options.realm
+        ctx.store.basicAuthUser = credentials.username
+      }
+    })
 }
