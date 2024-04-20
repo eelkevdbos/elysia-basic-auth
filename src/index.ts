@@ -192,7 +192,7 @@ export function basicAuth(userOptions: Partial<BasicAuthOptions> = {}) {
     .state('basicAuthRealm', null as string | null)
     .state('basicAuthUser', null as string | null)
     .error({ BASIC_AUTH_ERROR: BasicAuthError })
-    .onError(({ code, error }) => {
+    .onError({ as: "global" }, ({ code, error }) => {
       if (code === 'BASIC_AUTH_ERROR' && error.realm === options.realm) {
         return new Response(options.unauthorizedMessage, {
           status: options.unauthorizedStatus,
