@@ -148,7 +148,7 @@ function isCORSPreflightRequest(request: Request) {
   return (
     request.method === 'OPTIONS' &&
     request.headers.has('Origin') &&
-    request.headers.has('Cross-Origin-Request-Method')
+    request.headers.has('Access-Control-Request-Method')
   )
 }
 
