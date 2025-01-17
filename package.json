@@ -1,6 +1,6 @@
 {
   "name": "@eelkevdbos/elysia-basic-auth",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Basic auth for Elysia.js",
   "repository": "https://github.com/eelkevdbos/elysia-basic-auth",
   "author": {
