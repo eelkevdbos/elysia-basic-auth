@@ -71,7 +71,7 @@ describe('basicAuth skipCorsPreflight', () => {
     method: 'OPTIONS',
     headers: {
       Origin: 'foreignhost',
-      'Cross-Origin-Request-Method': 'GET',
+      'Access-Control-Request-Method': 'GET',
     },
   })
   it('no bypass by default', async () => {
